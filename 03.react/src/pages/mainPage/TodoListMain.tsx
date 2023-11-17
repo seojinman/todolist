@@ -5,9 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 export const TodoListMain = () => {
-  const [data, setData] = useState<TodoItem[]>();
-
+  const [data, setData] = useState<TodoItem[]>([]);
+  const [sortByDate, setSortByDate] = useState<'asc' | 'desc'>('asc');
   const [toggle, setToggle] = useState<{ [key: number]: boolean }>({});
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [filterByDone, setFilterByDone] = useState<boolean | null>(null); // 추가
+
   const navigate = useNavigate();
 
   const moveToRegist = () => {
@@ -46,10 +49,55 @@ export const TodoListMain = () => {
     getData();
   };
 
+  const toggleSortOrder = () => {
+    setSortByDate((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  };
+
+  const sortData = (todos: TodoItem[]) => {
+    return todos.slice().sort((a, b) => {
+      if (sortByDate === 'asc') {
+        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      } else {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+    });
+  };
+
+  function searchTodo(searchKeyword:string) {
+    const filteredData = data?.filter((item) => {
+      const title = item.title ? item.title.toLowerCase() : ''; // title이 undefined일 경우 빈 문자열 반환
+      return title.includes(searchKeyword.toLowerCase());
+    });
+    return filteredData;
+  }
+
+  function filterByDoneValue(doneValue: boolean | null) {
+    const filteredData = data?.filter((item) => {
+      if (doneValue === null) return true; // null 값이면 모든 데이터 반환
+      return item.done === doneValue;
+    });
+    return filteredData;
+  }
+
+  const sortedData = sortData(data);
+  const searchedData = searchTodo(searchKeyword);
+  const filteredByDoneData = filterByDoneValue(filterByDone); // 추가
+
   return (
     <>
+      <InputContainer>
+        <Input
+          type="text"
+          placeholder="검색어를 입력하세요"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+        />
+        <Button onClick={toggleSortOrder}>
+          {sortByDate === 'asc' ? '오름차순 정렬' : '내림차순 정렬'}
+        </Button>
+      </InputContainer>
       <TodoList>
-        {data?.map((item) => (
+        {filteredByDoneData.map((item) => ( // 변경
           <li key={item._id}>
             <div>
               <CheckBox type='checkbox' onChange={() => checkTodoDone(item)} checked={item.done} />
@@ -66,10 +114,26 @@ export const TodoListMain = () => {
         <Button className='redButton' onClick={deleteAllTodo}>
           전체삭제
         </Button>
+        <Button onClick={() => setFilterByDone(true)}>완료</Button> {/* 추가 */}
+        <Button onClick={() => setFilterByDone(false)}>미완료</Button> {/* 추가 */}
+        <Button onClick={() => setFilterByDone(null)}>전체</Button> {/* 추가 */}
       </ButtonContainer>
     </>
   );
 };
+const InputContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // 다른 스타일 속성들...
+`;
+
+const Input = styled.input`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  // 다른 스타일 속성들...
+`;
 
 const TodoList = styled.ul`
   width: 300px;
@@ -97,7 +161,7 @@ const CheckBox = styled.input`
 
 const TodoTitle = styled.h2`
   display: inline-block;
-  background-color: #d9d9d9;
+  background-color: #50E0E5;
   width: 260px;
   height: 40px;
   font-size: 16px;
@@ -127,7 +191,7 @@ const Button = styled.button`
   border: none;
   border-radius: 20px;
   background-color: #d9d9d9;
-  color: #black;
+  color: #0000;
   padding: 6px 12px;
   flex-shrink: 0;
   cursor: pointer;
